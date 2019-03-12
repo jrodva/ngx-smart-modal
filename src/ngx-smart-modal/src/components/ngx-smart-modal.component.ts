@@ -7,10 +7,16 @@ import {
   Component,
   EventEmitter,
   HostListener,
-  ChangeDetectorRef, ViewChild, ElementRef,
+  ChangeDetectorRef,
+  ViewChild,
+  ElementRef,
+  Inject,
+  PLATFORM_ID
 } from '@angular/core';
 
 import { NgxSmartModalService } from '../services/ngx-smart-modal.service';
+
+import { isPlatformBrowser } from '@angular/common';
 
 @Component({
   selector: 'ngx-smart-modal',
@@ -72,9 +78,10 @@ export class NgxSmartModalComponent implements OnInit, OnDestroy {
   constructor(
     private _renderer: Renderer2,
     private _changeDetectorRef: ChangeDetectorRef,
-    private _ngxSmartModalService: NgxSmartModalService
-  ) { }
-
+    private _ngxSmartModalService: NgxSmartModalService,
+    @Inject(PLATFORM_ID) private _platformId: any
+  ) {
+  }
   public ngOnInit() {
     if (!!this.identifier && this.identifier.length) {
       this.layerPosition += this._ngxSmartModalService.getModalStackCount();
@@ -90,7 +97,9 @@ export class NgxSmartModalComponent implements OnInit, OnDestroy {
 
   public ngOnDestroy() {
     this._ngxSmartModalService.removeModal(this.identifier);
-    window.removeEventListener('keyup', this.escapeKeyboardEvent);
+    if (isPlatformBrowser(this._platformId)) {
+      window.removeEventListener('keyup', this.escapeKeyboardEvent);
+    }
     if (!this._ngxSmartModalService.getModalStack.length) {
       this._renderer.removeClass(document.body, 'dialog-open');
     }
@@ -106,7 +115,10 @@ export class NgxSmartModalComponent implements OnInit, OnDestroy {
       this.layerPosition = this._ngxSmartModalService.getHigherIndex();
     }
 
-    this._renderer.addClass(document.body, 'dialog-open');
+    if (isPlatformBrowser(this._platformId)) {
+      this._renderer.addClass(document.body, 'dialog-open');
+    }
+
     this.overlayVisible = true;
     this.visible = true;
 
@@ -122,7 +134,7 @@ export class NgxSmartModalComponent implements OnInit, OnDestroy {
 
     this.onOpen.emit(this);
 
-    if (this.escapable) {
+    if (this.escapable && isPlatformBrowser(this._platformId)) {
       window.addEventListener('keyup', this.escapeKeyboardEvent);
     }
   }
@@ -137,7 +149,8 @@ export class NgxSmartModalComponent implements OnInit, OnDestroy {
     this.onClose.emit(this);
     this.onAnyCloseEvent.emit(this);
 
-    if (this._ngxSmartModalService.getOpenedModals().length < 2) {
+    if (this._ngxSmartModalService.getOpenedModals().length < 2
+        && isPlatformBrowser(this._platformId)) {
       this._renderer.removeClass(document.body, 'dialog-open');
     }
 
@@ -150,7 +163,9 @@ export class NgxSmartModalComponent implements OnInit, OnDestroy {
       me.onAnyCloseEventFinished.emit(me);
     }, this.hideDelay);
 
-    window.removeEventListener('keyup', this.escapeKeyboardEvent);
+    if(isPlatformBrowser(this._platformId)) {
+      window.removeEventListener('keyup', this.escapeKeyboardEvent);
+    }
   }
 
   /**
@@ -170,7 +185,8 @@ export class NgxSmartModalComponent implements OnInit, OnDestroy {
       this.onDismiss.emit(this);
       this.onAnyCloseEvent.emit(this);
 
-      if (this._ngxSmartModalService.getOpenedModals().length < 2) {
+      if (this._ngxSmartModalService.getOpenedModals().length < 2
+          && isPlatformBrowser(this._platformId)) {
         this._renderer.removeClass(document.body, 'dialog-open');
       }
 
@@ -183,7 +199,9 @@ export class NgxSmartModalComponent implements OnInit, OnDestroy {
         me.onAnyCloseEventFinished.emit(me);
       }, this.hideDelay);
 
-      window.removeEventListener('keyup', this.escapeKeyboardEvent);
+      if (isPlatformBrowser(this._platformId)) {
+        window.removeEventListener('keyup', this.escapeKeyboardEvent);
+      }
     }
   }
 
@@ -287,7 +305,7 @@ export class NgxSmartModalComponent implements OnInit, OnDestroy {
    */
   @HostListener('window:resize')
   public targetPlacement() {
-    if (!this.nsmDialog || !this.nsmContent || !this.nsmOverlay || !this.target) {
+    if (!this.nsmDialog || !this.nsmContent || !this.nsmOverlay || !this.target || !isPlatformBrowser(this._platformId)) {
       return;
     }
 
